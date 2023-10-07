@@ -18,51 +18,64 @@ WGSAM <- BS2017SS
 # Remove Long_rough_dab and Polar_cod because they have no fishery
 # --------------------------------
 # Select species
-species <- c("Haddock", "North_atl_cod", "Capelin")
+species <- c("Capelin", "Haddock", "North_atl_cod")
 
 # Cod, capelin, haddock
-simFocalSpecies <- simFocalSpecies %>%
+simFocalSpecies <- simFocalSpecies %>% 
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simCatchIndex <- simCatchIndex %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyIndex <- simSurveyIndex %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyAgecomp <- simSurveyAgecomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyLencomp <- simSurveyLencomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyAgeLencomp <- simSurveyAgeLencomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyWtatAge <- simSurveyWtatAge %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simFisheryAgecomp <- simFisheryAgecomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simFisheryLencomp <- simFisheryLencomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simFisheryWtatAge<- simFisheryWtatAge %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simBiolPar <- simBiolPar %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simSurveyDietcomp <- simSurveyDietcomp %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 simPerCapCons <- simPerCapCons %>%
+  as.data.frame() %>% 
   filter(Name %in% species)
 
 
 # --------------------------------
-# Set up control sheet
+# Set up control sheet ----
 # --------------------------------
 WGSAM$nspp <- length(simFocalSpecies$Name)
 WGSAM$spnames <- sort(simFocalSpecies$Name)
@@ -117,22 +130,32 @@ WGSAM$est_sex_ratio <- rep(0, WGSAM$nspp) # Not used
 spp_inds <- data.frame(Name = sort(simFocalSpecies$Name), Species = 1:length(simFocalSpecies$Name), maxage = WGSAM$nages)
 
 # --------------------------------
-# Set up fleet control
+# Fleet control ----
 # --------------------------------
-surveys <- simSurveyIndex %>% distinct(Name, survey)
+surveys <- simSurveyIndex %>% 
+  as.data.frame() %>% 
+  distinct(Name, survey)
 surveys$Fleet_type <- 2
 surveys <- surveys %>%
   rename(Fleet_name = survey) # Do spring and fall surveys have same catchability?
 
-fishingfleets <- simCatchIndex %>% distinct(Name, fishery)
+fishingfleets <- simCatchIndex %>% 
+  as.data.frame() %>% 
+  distinct(Name, fishery)
 fishingfleets$Fleet_type <- 1
 fishingfleets <- fishingfleets %>%
   rename(Fleet_name = fishery)
 
 # - Age-first selected 
-frst_fish_age <- simFisheryWtatAge %>% group_by(Name, fishery) %>% summarise(Age_first_selected = min(age)) %>%
+frst_fish_age <- simFisheryWtatAge %>% 
+  as.data.frame() %>% 
+  group_by(Name, fishery) %>% 
+  summarise(Age_first_selected = min(age)) %>%
   rename(Fleet_name = fishery)
-frst_srv_age <- simSurveyWtatAge %>% group_by(Name, survey) %>% summarise(Age_first_selected = min(age)) %>%
+frst_srv_age <- simSurveyWtatAge %>% 
+  as.data.frame() %>% 
+  group_by(Name, survey) %>% 
+  summarise(Age_first_selected = min(age)) %>%
   rename(Fleet_name = survey)
 first_selected_age <- rbind(frst_srv_age, frst_fish_age)
 
@@ -142,6 +165,7 @@ fleet_control <- merge(fleet_control, spp_inds, all = TRUE)
 # fleet_control <- merge(fleet_control, first_selected_age, all = TRUE)
 
 fleet_control <- fleet_control %>%
+  as.data.frame() %>% 
   mutate(Fleet_code = 1:n(),
          Selectivity_index = 1:n(), # Selectivity the same for spring and fall surveys
          Selectivity = 2, # All non-parametric
@@ -183,12 +207,14 @@ fleet_control <- fleet_control[,c("Name", colnames(WGSAM$fleet_control))]
 
 
 # --------------------------------
-# Set up survey biomass
+# Survey biomass ----
 # --------------------------------
-biomass <- simSurveyIndex %>%
+biomass <- simSurveyIndex %>% 
+  as.data.frame() %>% 
   filter(variable == "biomass")
 
 biomasscv <- simSurveyIndex %>%
+  as.data.frame() %>% 
   filter(variable == "cv")
 
 srv_biom <- data.frame(
@@ -206,18 +232,23 @@ srv_biom <- data.frame(
 species_fleet_crosswalk <- fleet_control %>%
   select(Name, Fleet_name, Fleet_code, Species)
 
+species_fleet_crosswalk_fishery <- species_fleet_crosswalk %>%
+  mutate(Fleet_name = ifelse(Fleet_name  == "allfleet", "census", Fleet_name))
+
 srv_biom <- merge(srv_biom, species_fleet_crosswalk, all.x = TRUE)
 srv_biom <- srv_biom[,c("Name", colnames(WGSAM$srv_biom))]
 
 
 # --------------------------------
-# Set up fishery catch
+# Fishery catch ----
 # --------------------------------
 catch <- simCatchIndex %>%
-  filter(simCatchIndex$variable == "catch")
+  as.data.frame() %>% 
+  filter(variable == "catch")
 
 catchcv <- simCatchIndex %>%
-  filter(simCatchIndex$variable == "cv")
+  as.data.frame() %>% 
+  filter(variable == "cv")
 
 fsh_biom <- data.frame(
   Name = catch$Name,
@@ -234,10 +265,11 @@ fsh_biom <- fsh_biom[,c("Name", colnames(WGSAM$fsh_biom))]
 
 
 # --------------------------------
-# Set up comp data
+# Set up comp data ----
 # --------------------------------
 # - Fishery age
-simFisheryAgecomp <- pivot_wider(simFisheryAgecomp, names_from = "age") %>% as.data.frame()
+simFisheryAgecomp <- pivot_wider(simFisheryAgecomp, names_from = "age") %>% 
+  as.data.frame()
 comp_data_fsh_age <- data.frame(
   Name = simFisheryAgecomp$Name,
   Fleet_name = simFisheryAgecomp$fishery,
@@ -253,10 +285,11 @@ comp_temp[is.na(comp_temp)] <- 0
 # colnames(comp_temp) <- paste0("Comp_", 1:ncol(comp_temp))
 
 comp_data_fsh_age <- cbind(comp_data_fsh_age, comp_temp)
-comp_data_fsh_age <- merge(comp_data_fsh_age, species_fleet_crosswalk, all.x = TRUE)
+comp_data_fsh_age <- merge(comp_data_fsh_age, species_fleet_crosswalk_fishery, all.x = TRUE)
 
 # - survey age
-simSurveyAgecomp <- pivot_wider(simSurveyAgecomp, names_from = "age") %>% as.data.frame()
+simSurveyAgecomp <- pivot_wider(simSurveyAgecomp, names_from = "age") %>% 
+  as.data.frame()
 comp_data_srv_age <- data.frame(
   Name = simSurveyAgecomp$Name,
   Fleet_name = simSurveyAgecomp$survey,
@@ -273,7 +306,7 @@ comp_temp[is.na(comp_temp)] <- 0
 # colnames(comp_temp) <- paste0("Comp_", 1:ncol(comp_temp))
 
 comp_data_srv_age <- cbind(comp_data_srv_age, comp_temp)
-comp_data_srv_age <- merge(comp_data_srv_age, species_fleet_crosswalk, all.x = TRUE)
+comp_data_srv_age <- merge(comp_data_srv_age, species_fleet_crosswalk_fishery, all.x = TRUE)
 
 
 # 
@@ -338,25 +371,28 @@ comp_data <- comp_data %>%
 
 
 # --------------------------------
-# Set up empirical selectivity
+# Empirical selectivity ----
 # --------------------------------
 emp_sel <- WGSAM$emp_sel
 emp_sel <- emp_sel[-c(1:20),] 
 
 
 # --------------------------------
-# Set up age transition matrix
+# Age transition matrix ----
 # --------------------------------
 #FIXME adjust for agecl to age converesion?
 agelengthdat <- simSurveyAgeLencomp %>%
+  as.data.frame() %>% 
   mutate(lenbin = paste0("Length",lenbin - min(lenbin) + 1)) %>% 
   pivot_wider(names_from = "lenbin") %>% 
   as.data.frame()
 
 agelengthdat <- agelengthdat %>%
+  as.data.frame() %>% 
   select(ModSim, year, Code,  Name, survey, agecl, variable, units, paste0("Length",sort(unique(simSurveyAgeLencomp$lenbin))-min(simSurveyAgeLencomp$lenbin) + 1))
 
 agelen_names <- agelengthdat %>%
+  as.data.frame() %>% 
   distinct(Name, survey) %>%
   mutate(Age_transition_index = 1:n())
 
@@ -365,6 +401,7 @@ for(i in 1:nrow(agelen_names)){
   
   # Annual
   agelencomp_temp <- agelengthdat %>%
+    as.data.frame() %>% 
     filter(Name == agelen_names$Name[i] & survey == agelen_names$survey[i])
   agecl_df <- data.frame(agecl = sort(unique(agelencomp_temp$agecl)))
   
@@ -408,7 +445,7 @@ for(i in 1:nrow(agelen_names)){
 age_trans_matrix <-rbindlist(age_trans_list)
 
 # --------------------------------
-# Age error
+# Age error ----
 # --------------------------------
 age_error_list <- list()
 for(i in 1:WGSAM$nspp){
@@ -432,7 +469,7 @@ age_error <- Reduce('bind_rows', age_error_list)
 
 
 # --------------------------------
-# WT
+# WT ----
 # --------------------------------
 wt <- WGSAM$wt
 species_wt_crosswalk <- fleet_control %>%
@@ -443,6 +480,7 @@ species_wt_crosswalk <- fleet_control %>%
 simSurveyWtatAge$value <- simSurveyWtatAge$value * 0.001 # Convert g to kg
 simSurveyWtatAge$units <- "kg"
 simSurveyWtatAge <- simSurveyWtatAge %>%
+  as.data.frame() %>% 
   mutate(age = paste0("Age",age)) %>%
   pivot_wider(names_from = "age") %>% as.data.frame()
 
@@ -463,6 +501,7 @@ srv_wt <- merge(srv_wt, species_wt_crosswalk, all.x = TRUE)
 simFisheryWtatAge$value <- simFisheryWtatAge$value * 0.001 # Convert g to kg
 simFisheryWtatAge$units <- "kg"
 simFisheryWtatAge <- simFisheryWtatAge %>%
+  as.data.frame() %>% 
   mutate(age = paste0("Age",age)) %>%
   pivot_wider(names_from = "age") %>% as.data.frame()
 
@@ -487,8 +526,9 @@ wt <- wt[,c("Name", "Wt_name", "Wt_index", "Species","Sex", "Year", paste0("Age"
 
 
 # --------------------------------
-# pmaturity - assume mature at half age
+# pmaturity  ----
 # --------------------------------
+# -- assume mature at half age
 pmature <- data.frame(matrix(0, WGSAM$nspp, max(WGSAM$nages)+1))
 pmature[,1] <- 1:nrow(pmature)
 colnames(pmature) <- c("Species", paste0("Age",1:max(WGSAM$nages)))
@@ -498,7 +538,7 @@ for(i in 1:nrow(pmature)){
 
 
 # --------------------------------
-# sex_ratio - assume 0.5
+# sex_ratio - assume 0.5 ----
 # --------------------------------
 sex_ratio <- data.frame(matrix(0.5, WGSAM$nspp, max(WGSAM$nages)+1))
 sex_ratio[,1] <- 1:nrow(sex_ratio)
@@ -506,7 +546,7 @@ colnames(sex_ratio) <- c("Species", paste0("Age",1:max(WGSAM$nages)))
 
 
 # --------------------------------
-# m1 - assume 0.2
+# m1 - assume 0.2 ----
 # --------------------------------
 M1_base <- data.frame(matrix(0.2, WGSAM$nspp, max(WGSAM$nages)+2))
 M1_base[,1] <- 1:nrow(M1_base)
@@ -515,15 +555,17 @@ colnames(M1_base) <- c("Species", "Sex", paste0("Age",1:max(WGSAM$nages)))
 
 
 # --------------------------------
-# aLW
+# aLW ----
 # --------------------------------
 simBiolPar <- simBiolPar %>%
+  as.data.frame() %>% 
   arrange(Name)
 aLW <- data.frame(Species = 1: WGSAM$nspp, a = simBiolPar$WLa, b = simBiolPar$WLb)
 
 
 # --------------------------------
-# bioenergetics - Easier to do in excel (copy column 1 11 times)
+# bioenergetics ----
+# - Easier to do in excel (copy column 1 11 times)
 # --------------------------------
 bioenergetics <- c("Ceq", "Cindex", "Pvalue", "fday", "CA", "CB", "Qc", "Tco", "Tcm", "Tcl", "CK1", "CK4")
 for(i in 1:length(bioenergetics)){
@@ -531,9 +573,10 @@ for(i in 1:length(bioenergetics)){
 }
 
 # --------------------------------
-# Env data
+# Env data ----
 # --------------------------------
 temp_series <- simSurveyBottemp %>%
+  as.data.frame() %>% 
   filter(survey == "BTS_fall_allbox_effic1")
 env_data <- data.frame(Year = WGSAM$styr:WGSAM$endyr, BTemp = temp_series$value)
 
@@ -546,7 +589,7 @@ fleet_control <- merge(fleet_control, agelen_names, all = TRUE)
 fleet_control <- fleet_control[,c("Name", colnames(BS2017SS$fleet_control))]
 
 # --------------------------------
-# Update name and add in
+# Update name and add in ----
 # --------------------------------
 WGSAM$fleet_control <- fleet_control %>% arrange(Fleet_code)
 WGSAM$srv_biom <- srv_biom
@@ -592,8 +635,9 @@ WGSAM$ssb_wt_index <- rep(1, WGSAM$nspp) #TODO
 WGSAM$pop_age_transition_index <- rep(1, WGSAM$nspp) #TODO
 
 # --------------------------------
-# Save
+# Save ----
 # --------------------------------
+setwd("~/GitHub/WGSAM-CEATTLE-Skill-Test")
 write_data(WGSAM, file = "Data/WGSAM_unedited.xlsx")
 
 # Edits using excel
